@@ -203,7 +203,9 @@ class SessionCleanApp:
         new_files = self._db.get_all_new_files()
         logger.info("Showing cleanup window with %d files", len(new_files))
 
-        self._root.deiconify()  # Show root briefly for toplevel to work
+        # Keep root hidden but ensure it exists for toplevel windows
+        self._root.deiconify()
+        self._root.withdraw()
 
         self._cleanup_window = CleanupWindow(
             new_files=new_files,
@@ -212,10 +214,13 @@ class SessionCleanApp:
             ),
             is_shutdown=is_shutdown,
         )
+        # Force the cleanup window to appear on top
+        self._cleanup_window.after(100, self._cleanup_window.lift)
 
     def _show_settings(self) -> None:
         """Show the settings window."""
         self._root.deiconify()
+        self._root.withdraw()
         ConfigWindow(
             config=self._config,
             on_save=self._on_config_saved,
