@@ -73,6 +73,9 @@ class SessionCleanApp:
         # Periodic tray update
         self._schedule_tray_update()
 
+        # Auto-open the review window after a short delay (let scan start first)
+        self._root.after(2000, lambda: self._show_cleanup(is_shutdown=False))
+
         logger.info("All subsystems started. Entering main loop.")
         self._root.mainloop()
 
@@ -93,7 +96,8 @@ class SessionCleanApp:
     def _start_shutdown_hook(self) -> None:
         """Start the Win32 shutdown hook on a background thread."""
         self._shutdown_hook = ShutdownHook(
-            on_shutdown_requested=self._on_shutdown_requested
+            on_shutdown_requested=self._on_shutdown_requested,
+            on_review_requested=self._on_review_now,
         )
         hook_thread = threading.Thread(
             target=self._shutdown_hook.run_message_loop,

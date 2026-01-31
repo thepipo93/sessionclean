@@ -48,8 +48,13 @@ class ShutdownHook:
         hook.allow_shutdown()
     """
 
-    def __init__(self, on_shutdown_requested: Callable[[], None]) -> None:
+    def __init__(
+        self,
+        on_shutdown_requested: Callable[[], None],
+        on_review_requested: Callable[[], None] | None = None,
+    ) -> None:
         self._callback = on_shutdown_requested
+        self._review_callback = on_review_requested or on_shutdown_requested
         self._hwnd: int | None = None
         self._shutdown_blocked = False
         self._ready_event = threading.Event()
@@ -168,7 +173,7 @@ class ShutdownHook:
         elif msg == WM_USER_SHOW_REVIEW:
             logger.info("Manual review requested via custom message")
             threading.Thread(
-                target=self._safe_callback, daemon=True
+                target=self._safe_review_callback, daemon=True
             ).start()
             return 0
 
@@ -198,6 +203,13 @@ class ShutdownHook:
             logger.error("Shutdown callback error: %s", exc)
             # If callback fails, unblock shutdown to avoid locking the user
             self.allow_shutdown()
+
+    def _safe_review_callback(self) -> None:
+        """Call the review callback with error handling."""
+        try:
+            self._review_callback()
+        except Exception as exc:
+            logger.error("Review callback error: %s", exc)
 
     def _emergency_save(self) -> None:
         """Minimal save if the user forces shutdown."""
